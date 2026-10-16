@@ -19,7 +19,7 @@ Get the latest version from the **[Releases page](https://github.com/Sajovara/ak
 | --- | --- |
 | Windows 10/11 (64-bit) | `Akapen-Setup-<version>.exe` – run the installer |
 | Linux (64-bit, any distro) | `Akapen-<version>.AppImage` – make it executable (`chmod +x`) and start it |
-| Debian / Ubuntu | `akapen-desktop_<version>_amd64.deb` – `sudo apt install ./akapen-desktop_<version>_amd64.deb` |
+| Debian / Ubuntu | `akapen_<version>_amd64.deb` – `sudo apt install ./akapen_<version>_amd64.deb` |
 
 macOS is not available yet.
 
