@@ -6,8 +6,8 @@
 #   bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v<version>/install/proxmox.sh)"
 #
 # Asks a few questions (Anki, voices, Tailscale), makes a new container for
-# Akapen (Debian, unprivileged, 4 cores, 6–8 GB RAM, 24 GB disk, starts with
-# the host, Tailscale-ready), downloads the server code of this release
+# Akapen (Debian, unprivileged, name and size chosen – with minimum and
+# recommended values for your choices –, starts with the host, Tailscale-ready), downloads the server code of this release
 # (checked against its SHA-256), installs it inside with server.sh and prints
 # the address to enter in the app. Other containers and VMs are left alone.
 #
@@ -19,6 +19,9 @@
 #   AKAPEN_VMID=<id>                  container ID [the next free one]; an existing
 #                                     Akapen container with this ID is installed again
 #   AKAPEN_HOSTNAME=<name>            [akapen, akapen-2, … whichever is free]
+#   AKAPEN_CORES / AKAPEN_MEMORY / AKAPEN_DISK
+#                                     CPU cores, RAM in MB, disk in GB [recommended
+#                                     for your choices, within what the host has]
 #   AKAPEN_STORAGE / AKAPEN_BRIDGE    [the storage with the most free space / vmbr0]
 #   AKAPEN_YES=1                      take the defaults, ask nothing
 #   AKAPEN_VERSION=<x.y.z|latest>     another release than this script's
@@ -26,8 +29,8 @@
 set -euo pipefail
 
 REPO=Sajovara/akapen-releases
-RELEASE="0.1.2"   # filled in when published (scripts/release.mjs)
-SHA256="ab5947fb33a3d868fefbba8e5b311fe312dae42d477d2b3dd7dfc80321678cd9"
+RELEASE="0.1.3"   # filled in when published (scripts/release.mjs)
+SHA256="7e96cf33916136ffc7a5a1c49603cb8833f471a3fd957e93fd7a72e6e2619b5c"
 DESC="Akapen (Japanese trainer) + headless Anki"
 case "$RELEASE" in @*) RELEASE= ;; esac
 case "$SHA256" in @*) SHA256= ;; esac
@@ -117,6 +120,35 @@ if [ -z "$VOICEVOX" ]; then VOICEVOX=0; yes_no "Install VOICEVOX (natural Japane
 TAILSCALE="$(flag "${AKAPEN_TAILSCALE:-}")"
 if [ -z "$TAILSCALE" ]; then TAILSCALE=0; yes_no "Set up Tailscale (use Akapen on your phone away from home)?" n && TAILSCALE=1; fi
 
+# ---------- name and size of the new container ----------
+# minimum / recommended for the choices (same numbers as the desktop app):
+# the app with speech recognition, Anki under Xvfb, VOICEVOX
+num() { [[ "$1" =~ ^[0-9]+$ ]]; }
+if [ -z "$REUSE" ]; then
+  A=$([ "$ANKI" = none ] && echo 0 || echo 1); V=$VOICEVOX
+  HOST_CORES=$(nproc); HOST_MB=$(( $(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo) - 1024 ))
+  MIN_MB=$(( 2048 + A*512 + V*1536 )); REC_MB=$(( 4096 + A*1024 + V*2048 ))
+  MIN_GB=$(( 8 + A*2 + V*6 )); REC_GB=$(( 16 + A*4 + V*8 ))
+  REC_CORES=$(( HOST_CORES < 4 ? HOST_CORES : 4 ))
+  [ "$REC_MB" -gt "$HOST_MB" ] && REC_MB=$(( HOST_MB / 512 * 512 ))
+  [ "$HOST_MB" -ge "$MIN_MB" ] || die "this host has too little RAM for these choices ($MIN_MB MB needed besides the host's own 1 GB). Leave out VOICEVOX or Anki."
+  if [ -n "$TTY" ]; then
+    say ""
+    say "${B}The container${N} ${D}(Enter = recommended)${N}"
+    ask "Name [$HOSTNAME_]:" "$HOSTNAME_"; HOSTNAME_="$REPLY"
+    [[ "$HOSTNAME_" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]] || die "the name may only have a–z, 0–9 and -."
+    [[ "$NAMES" != *" $HOSTNAME_ "* ]] || die "the name $HOSTNAME_ is already taken on this host."
+  fi
+  CORES="${AKAPEN_CORES:-}"; MEM="${AKAPEN_MEMORY:-}"; DISK="${AKAPEN_DISK:-}"
+  [ -n "$CORES" ] || { ask "CPU cores – at least 1, recommended $REC_CORES, the host has $HOST_CORES [$REC_CORES]:" "$REC_CORES"; CORES="$REPLY"; }
+  [ -n "$MEM" ] || { ask "RAM in MB – at least $MIN_MB, recommended $REC_MB, at most $HOST_MB [$REC_MB]:" "$REC_MB"; MEM="$REPLY"; }
+  [ -n "$DISK" ] || { ask "Disk in GB – at least $MIN_GB, recommended $REC_GB [$REC_GB]:" "$REC_GB"; DISK="$REPLY"; }
+  num "$CORES" && [ "$CORES" -ge 1 ] && [ "$CORES" -le "$HOST_CORES" ] || die "CPU cores must be 1–$HOST_CORES."
+  num "$MEM" && [ "$MEM" -ge "$MIN_MB" ] && [ "$MEM" -le "$HOST_MB" ] || die "RAM must be $MIN_MB–$HOST_MB MB for these choices."
+  num "$DISK" && [ "$DISK" -ge "$MIN_GB" ] || die "the disk must be at least $MIN_GB GB for these choices."
+  [ "$MEM" -ge "$REC_MB" ] || say "${D}Note: below the recommended RAM speech recognition (Talk) gets slow; use its \"fast\" setting.${N}"
+fi
+
 # ---------- the server code (checked before anything is created) ----------
 step "Server code"
 if [ -n "${AKAPEN_TARBALL:-}" ]; then
@@ -152,10 +184,8 @@ else
   BRIDGE="${AKAPEN_BRIDGE:-$(printf '%s\n' $BRIDGES | grep -x vmbr0 || printf '%s\n' $BRIDGES | head -1)}"
   [ -n "$BRIDGE" ] || die "no network bridge (vmbr0) on this host."
   [[ "$BRIDGE" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid bridge name."
-  CORES=$(( $(nproc) < 4 ? $(nproc) : 4 ))
-  WANT_MB=$([ "$VOICEVOX" = 1 ] && echo 8192 || echo 6144)
-  TOTAL_MB=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
-  MEM=$(( (TOTAL_MB - 1024) / 512 * 512 )); [ "$MEM" -gt "$WANT_MB" ] && MEM=$WANT_MB; [ "$MEM" -lt 2048 ] && MEM=2048
+  FREE_GB=$(pvesm status --storage "$STORAGE" 2>/dev/null | awk 'NR==2{print int($6/1048576)}')
+  [ -z "$FREE_GB" ] || [ "$DISK" -le "$FREE_GB" ] || die "$STORAGE has only $FREE_GB GB free; give a smaller disk (AKAPEN_DISK) or another storage (AKAPEN_STORAGE)."
 
   step "Debian template"
   TEMPLATE=
@@ -175,9 +205,9 @@ else
   fi
   say "$TEMPLATE"
 
-  step "Creating container $VMID \"$HOSTNAME_\" ($CORES cores, $MEM MB, 24 GB on $STORAGE, $BRIDGE)"
+  step "Creating container $VMID \"$HOSTNAME_\" ($CORES cores, $MEM MB, $DISK GB on $STORAGE, $BRIDGE)"
   pct create "$VMID" "$TEMPLATE" --hostname "$HOSTNAME_" --description "$DESC" \
-    --cores "$CORES" --memory "$MEM" --swap 1024 --rootfs "$STORAGE:24" \
+    --cores "$CORES" --memory "$MEM" --swap 1024 --rootfs "$STORAGE:$DISK" \
     --net0 "name=eth0,bridge=$BRIDGE,ip=dhcp,type=veth" --unprivileged 1 --features nesting=1,keyctl=1 \
     --onboot 1 --ostype debian --timezone host >/dev/null
   # Tailscale needs the tun device

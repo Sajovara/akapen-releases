@@ -22,8 +22,8 @@
 set -euo pipefail
 
 REPO=Sajovara/akapen-releases
-RELEASE="0.1.2"   # filled in when published (scripts/release.mjs)
-SHA256="ab5947fb33a3d868fefbba8e5b311fe312dae42d477d2b3dd7dfc80321678cd9"
+RELEASE="0.1.3"   # filled in when published (scripts/release.mjs)
+SHA256="7e96cf33916136ffc7a5a1c49603cb8833f471a3fd957e93fd7a72e6e2619b5c"
 APP=/opt/akapen
 LAN_PORT=4750
 # a fresh container has no locales: the terminal's would make apt and perl complain
