@@ -23,6 +23,43 @@ Get the latest version from the **[Releases page](https://github.com/Sajovara/ak
 
 macOS is not available yet.
 
+## Install on your own server without giving the app your password
+
+The desktop app can set up a server for you (Proxmox or a Debian/Ubuntu machine) – it then needs the server's root password.
+If you'd rather not hand that over, run the installer yourself. The app shows you these same lines ("Rather do it yourself?") and checks the result.
+
+**Proxmox** – in the Proxmox web interface click your node (e.g. `pve`) → **Shell** and paste:
+
+```sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.0/install/proxmox.sh)"
+```
+
+It asks a few questions (Anki via AnkiWeb login or none, VOICEVOX voices, Tailscale for your phone), creates a new container for Akapen (Debian, unprivileged, 4 cores, 6–8 GB RAM, 24 GB disk, starts with the host) and installs everything inside. Other containers and VMs are not touched.
+
+**Debian 12+ / Ubuntu 22.04+ machine** – in a terminal on it:
+
+```sh
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.0/install/server.sh)"
+```
+
+At the end both print the address to enter in the app, e.g. `http://192.168.1.50:4750`.
+
+**Updating** – on the server, or on the Proxmox host's shell (it finds the Akapen container):
+
+```sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.0/install/update.sh)"
+```
+
+Your learning data stays. Then press "Check" in the app.
+
+Good to know:
+
+- The scripts are short and readable – download one first (`curl -fsSLO <url>`), read it, then run it with `bash`.
+- Each script is pinned to its release: it downloads that release's `akapen-server-<version>.tar.gz` and refuses to continue if it doesn't match the SHA-256 checksum written into the script. Nothing is changed before that check.
+- Your AnkiWeb password is typed hidden, goes only to the server's Anki and is deleted after logging in. Passwords are never printed or logged.
+- Running a script again is safe: it picks up where it stopped, your progress stays.
+- No questions (for automation): set the answers as variables, e.g. `AKAPEN_YES=1 AKAPEN_ANKI=none AKAPEN_VOICEVOX=0 AKAPEN_TAILSCALE=1`; Proxmox also takes `AKAPEN_VMID`, `AKAPEN_HOSTNAME`, `AKAPEN_STORAGE`, `AKAPEN_BRIDGE`. The top of each script lists them all.
+
 ## System requirements
 
 - 64-bit Windows 10/11 or Linux (x64)
