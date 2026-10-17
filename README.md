@@ -31,7 +31,7 @@ If you'd rather not hand that over, run the installer yourself. The app shows yo
 **Proxmox** – in the Proxmox web interface click your node (e.g. `pve`) → **Shell** and paste:
 
 ```sh
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.6/install/proxmox.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.7/install/proxmox.sh)"
 ```
 
 It asks a few questions (Anki via AnkiWeb login or none, VOICEVOX voices, Tailscale for your phone), creates a new container for Akapen (Debian, unprivileged, 4 cores, 6–8 GB RAM, 24 GB disk, starts with the host) and installs everything inside. Other containers and VMs are not touched.
@@ -39,7 +39,7 @@ It asks a few questions (Anki via AnkiWeb login or none, VOICEVOX voices, Tailsc
 **Debian 12+ / Ubuntu 22.04+ machine** – in a terminal on it:
 
 ```sh
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.6/install/server.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.7/install/server.sh)"
 ```
 
 At the end both print the address to enter in the app, e.g. `http://192.168.1.50:4750`.
@@ -47,7 +47,7 @@ At the end both print the address to enter in the app, e.g. `http://192.168.1.50
 **Updating** – on the server, or on the Proxmox host's shell (it finds the Akapen container):
 
 ```sh
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.6/install/update.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Sajovara/akapen-releases/v0.1.7/install/update.sh)"
 ```
 
 Your learning data stays. Then press "Check" in the app.
