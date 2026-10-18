@@ -17,8 +17,8 @@
 set -euo pipefail
 
 REPO=Sajovara/akapen-releases
-RELEASE="0.1.18"   # filled in when published (scripts/release.mjs)
-SHA256="aea1b2bc3474d0f7d0b4d886c3260707b582db1b45240d1bbf524ed9d3ef34f2"
+RELEASE="0.1.19"   # filled in when published (scripts/release.mjs)
+SHA256="5eda16ddb8dea8a0c7654bff55df234682fac037fb25eaca910052fba598a5b6"
 APP=/opt/akapen
 case "$RELEASE" in @*) RELEASE= ;; esac
 case "$SHA256" in @*) SHA256= ;; esac
